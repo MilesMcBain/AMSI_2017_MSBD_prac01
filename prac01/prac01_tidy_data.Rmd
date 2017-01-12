@@ -1,0 +1,96 @@
+---
+title: "A introduction to Tidy data"
+author: "Miles McBain"
+date: "10/01/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readr)
+library(here)
+library(knitr)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+```
+
+#Introduction 
+Tidy Data is the standard shape of data expected by major statistical modelling packages and frameoworks. This shape allows efficient applicaiton of split-apply-combine strategy for processing big data. This first exercise in the practical will give you hands on experience applying the principles of Tidy Data using tools from R's tidyverse (`dplyr` and `tidyr`).
+
+## Reading
+* [Hadley Wickham's Tidy data paper](https://www.jstatsoft.org/article/view/v059i10)
+* [Hadley Wickham's Split-Apply-Combine paper](https://www.jstatsoft.org/article/view/v040i01)
+* [Data Wrangling Cheat Sheet](https://www.rstudio.com/wp-content/uploads/2015/02/data-wrangling-cheatsheet.pdf)
+
+## 1. Tidying Data
+This example is based on one from Hadley's [Tidy Data Vignette](ftp://cran.r-project.org/pub/R/web/packages/tidyr/vignettes/tidy-data.html). The table below is  an extract from a dataset that shows observations of Tuberculosis case instances by gender, age, country and year. The extract is of Australian cases.
+
+*Discuss*:
+
+* How do the columns map to the information?
+* What principles of Tidy data are violated?
+* What would a Tidy version of this dataset look like?
+
+### Data
+```{r, message=FALSE}
+tb_cases <- 
+  read_csv(here("data","tb.csv"))
+
+tb_cases %>% 
+  filter(iso2 == "AU") %>%
+  kable()  
+```
+
+### A Problem
+Suppose that you were interested in plotting the cases by year and gender, irrespective of country and age. By paying special attention to the structure of the data frame it may be possible to code two nested loops that can create two new columns of Male and Female aggregate results. However, processing data a row at a time is usually not performant as the data structures are optimised to be processed a column at a time. So not only will this approach fail to scale to big data, It will require a significant custom code.
+
+### A Solution
+
+#### Gather the data 
+A `gather` operation, sometimes referred to as `melt`, `unpivot`, or `stack` (depending on data processing framework) is the start of the solution to this problem. You can think of a `gather` as taking a group of columns and stacking their data on top of eachother one at a time. At the same time a new key column is created that keeps track of where the data originated.  
+
+In the example below, the new key column is `group`, while the values were stacked into `num_cases`.
+
+```{r, messges = FALSE}
+tb_cases_gathered <-
+  tb_cases %>%
+  gather(key = "group", value = "num_cases", m04:fu)
+
+tb_cases_gathered %>%
+  filter(iso2 == "AU", !is.na(num_cases)) %>%
+  top_n(10) %>%
+  kable()
+```
+
+#### Seprate combined columns
+The next issue is that age and gender are now combined in the group column, since we want to ignore the effect of age this will need to be resolved. Luckily we can use `dplyr::separate()` to solve this.
+
+```{r}
+tb_cases_sep <- 
+  tb_cases_gathered %>%
+  separate(col = group, into = c("gender", "age_group"), sep = 1)
+
+tb_cases_sep %>%
+  filter(iso2 == "AU", !is.na(num_cases)) %>%
+  top_n(10) %>%
+  kable()
+  
+```
+
+#### Exercise
+
+* See if you can now summarise the data such that the observations are yearly totals for each each gender. Consult the Data Wrangling Cheatsheet linked above.
+* Using the summarised data see if you can arrive at this plot using `ggplot2`:
+
+![](./figs/Tuberculosis.png)
+
+
+
+*Discuss*:
+
+* What elements of plotting did the tidy shape of the data make easier?
+* Given what you know of linear modelling how does tidy data relate to the desired from of data for fitting linear models (e.g. by least squares)?
+
+
+## Feature Engineering
