@@ -1,5 +1,5 @@
 ---
-title: "A introduction to Tidy data"
+title: "A introduction to Tiday Data and Preprocessing"
 author: "Miles McBain"
 date: "10/01/2017"
 output: html_document
@@ -13,10 +13,17 @@ library(knitr)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
+library(sparklyr)
 ```
 
-#Introduction 
+# Introduction 
 Tidy Data is the standard shape of data expected by major statistical modelling packages and frameoworks. This shape allows efficient applicaiton of split-apply-combine strategy for processing big data. This first exercise in the practical will give you hands on experience applying the principles of Tidy Data using tools from R's tidyverse (`dplyr` and `tidyr`).
+
+The second exercise introduces feature engineering as an aspect of daa preprocessing. In the context of tidy data, feature engineering is the process of transforming columns of data to expose features of each observation to statistical modelling and machine learning algorithms. We'll use R to talk to Spark to some typical big data style processing. 
+
+# Prerequisites
+* The file `prerequisites.R` contains the installation code for the packages needed to run this prac.
+* The evironment you are running in will also need an installation of Java. See [How Do I Install Java?](https://java.com/en/download/help/download_options.xml) for more information.
 
 ## Reading
 * [Hadley Wickham's Tidy data paper](https://www.jstatsoft.org/article/view/v059i10)
@@ -87,10 +94,69 @@ tb_cases_sep %>%
 
 
 
-*Discuss*:
+**Discuss**:
 
 * What elements of plotting did the tidy shape of the data make easier?
 * Given what you know of linear modelling how does tidy data relate to the desired from of data for fitting linear models (e.g. by least squares)?
 
 
-## Feature Engineering
+## 2. Feature Engineering
+
+This example is based on historical travel time data from the M4 motorway in Sydney:
+![](./figs/m4_times.jpg)
+
+The motorway is broken up into a series of Eastbound and Westbound "loops" for which we have the recorded average transit time of vehicles calculated over consecutive 3 minute intervals from March to November in 2010.
+
+### Initialisation
+```{r, message = FALSE}
+#initialise data file paths
+m4_data_file <- here("data","M4_data.csv")
+loop_lengths_file <- here("data", "RouteLengthApprox.csv")
+
+#initialise spark
+sc <- spark_connect(master = "local", version = "2.0.2")
+
+#load data to spark instance
+m4_data <- spark_read_csv(sc, "M4_data", m4_data_file, overwrite = TRUE)
+```
+
+### Data Exploration
+The `route` column contains is the identifier of the stretch of road that the observed average transit time was made over. Westbound routes have IDs in 40010..400150 increasing East to West, while Eastbound routes have IDs in 41010..41160 increasing West to East.
+
+`transit` contains the average transit time in deciseconds. The average is weighted in an unspecified manner.
+
+`Date` is the time and date of the end of the 3 minute observation interval.
+
+```{r}
+#The shape of the data
+kable(head(m4_data)) 
+
+#The number of rows
+nrow(m4_data)
+
+#The date range for our observations
+m4_data %>%
+  select(Date) %>%
+  summarise(min = min(Date), max = max(Date))
+```
+
+**Discuss**: is this Tidy Data?
+
+### Feature Engineering and Preprocessing using Dplyr/Spark
+
+#### Preprocessing
+An issue we have to consider is that not all routes (sections of road) are the same length. We'll standardise the transit times, but alternatively you could join the approximate route lengths from the csv file in `./data/`. And use that to model transit speed. This is left as an exercise.
+
+Standardising using `dplyr` and Spark:
+```{r}
+m4_data <-
+  m4_data %>%
+  group_by(route) %>%
+  mutate(standard_transit = (transit - mean(transit)/sd(transit)))
+
+head(m4_data)
+```
+
+
+Given our data, the objective is to transform it to present features that will offer traction to our chosen modelling. 
+
