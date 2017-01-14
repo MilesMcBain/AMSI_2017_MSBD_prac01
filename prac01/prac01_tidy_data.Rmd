@@ -114,10 +114,32 @@ m4_data_file <- here("data","M4_data.csv")
 loop_lengths_file <- here("data", "RouteLengthApprox.csv")
 
 #initialise spark
-sc <- spark_connect(master = "local", version = "2.0.2")
+
+Sys.setenv(SPARK_HOME = file.path(Sys.getenv("HOME"),"spark-1.6.3-bin-hadoop2.6"))
+
+system("$SPARK_HOME/bin/spark-shell --packages com.databricks:spark-csv_2.10:1.5.0")
+
+library(SparkR, lib.loc = c(file.path(Sys.getenv("SPARK_HOME"), "R", "lib")))
+sc <- sparkR.init(master = "local[*]", 
+                  sparkEnvir = list(spark.driver.memory="2g"),
+                  sparkPackages="com.databricks:spark-csv_2.10:1.5.0")
+sqlContext <- sparkRSQL.init(sc)
+
+
 
 #load data to spark instance
-m4_data <- spark_read_csv(sc, "M4_data", m4_data_file, overwrite = TRUE)
+customSchema <- structType(
+    structField("Date", "timestamp"),
+    structField("route", "integer"),
+    structField("transit", "integer"))
+
+m4_data <- read.df(sqlContext, 
+                    path = m4_data_file, 
+                    source = "com.databricks.spark.csv",
+                    header = "true",
+                    nullValue = "NA",
+                    schema = customSchema)
+
 ```
 
 ### Data Exploration
@@ -127,17 +149,17 @@ The `route` column contains is the identifier of the stretch of road that the ob
 
 `Date` is the time and date of the end of the 3 minute observation interval.
 
-```{r}
-#The shape of the data
-kable(head(m4_data)) 
+```{r, message = FALSE}
+#show top 100 rows
+showDF(m4_data, 100)  
 
-#The number of rows
+#count number of rows
 nrow(m4_data)
 
 #The date range for our observations
-m4_data %>%
-  select(Date) %>%
-  summarise(min = min(Date), max = max(Date))
+showDF(
+  select(m4_data, min(m4_data$Date), max(m4_data$Date))
+)
 ```
 
 **Discuss**: is this Tidy Data?
@@ -147,16 +169,21 @@ m4_data %>%
 #### Preprocessing
 An issue we have to consider is that not all routes (sections of road) are the same length. We'll standardise the transit times, but alternatively you could join the approximate route lengths from the csv file in `./data/`. And use that to model transit speed. This is left as an exercise.
 
-Standardising using `dplyr` and Spark:
-```{r}
-m4_data <-
-  m4_data %>%
-  group_by(route) %>%
-  mutate(standard_transit = (transit - mean(transit)/sd(transit)))
+Standardising using Spark:
+```{r, message = FALSE}
+#Calculate the mean and sd for each route
+summary_tab <- 
+  summarize(group_by(m4_data, m4_data$route), mean = mean(m4_data$transit), sd = sd(m4_data$transit))
+showDF(summary_tab)
 
-head(m4_data)
+#join the mean and sd back onto the main dataset
+m4_data <- join(m4_data, summary_tab, m4_data$route == summary_tab$route, "left")
+
+#Calculate a new column based in the Z-score
+m4_data$std_transit <- (m4_data$transit - m4_data$mean)/m4_data$sd
+showDF(m4_data, 100)
 ```
 
-
-Given our data, the objective is to transform it to present features that will offer traction to our chosen modelling. 
+#### Feature engineering
+Given our data, the objective is to transform it to present features that will offer traction to our chosen modelling. A common example is processing of timestamps. Here `date`, a timestamp with granularity in seconds will probably not be useful in detecting the signal associated with transit time. Common sense would tell us that the hour of the day and day of the week may be more useful covariates.
 
