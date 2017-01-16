@@ -22,8 +22,9 @@ Tidy Data is the standard shape of data expected by major statistical modelling 
 The second exercise introduces feature engineering as an aspect of daa preprocessing. In the context of tidy data, feature engineering is the process of transforming columns of data to expose features of each observation to statistical modelling and machine learning algorithms. We'll use R to talk to Spark to some typical big data style processing. 
 
 # Prerequisites
-* The file `prerequisites.R` contains the installation code for the packages needed to run this prac.
+* The file `prerequisites.R` contains the installation code for the R packages needed to run this prac.
 * The evironment you are running in will also need an installation of Java. See [How Do I Install Java?](https://java.com/en/download/help/download_options.xml) for more information.
+* Finally Spark 1.6.3 will need to be installed in your environment. See: [http://spark.apache.org/downloads.html](http://spark.apache.org/downloads.html)
 
 ## Reading
 * [Hadley Wickham's Tidy data paper](https://www.jstatsoft.org/article/view/v059i10)
@@ -117,7 +118,8 @@ loop_lengths_file <- here("data", "RouteLengthApprox.csv")
 
 Sys.setenv(SPARK_HOME = file.path(Sys.getenv("HOME"),"spark-1.6.3-bin-hadoop2.6"))
 
-system("$SPARK_HOME/bin/spark-shell --packages com.databricks:spark-csv_2.10:1.5.0")
+#To install csv connecter, if required:
+#system("$SPARK_HOME/bin/spark-shell --packages com.databricks:spark-csv_2.10:1.5.0")
 
 library(SparkR, lib.loc = c(file.path(Sys.getenv("SPARK_HOME"), "R", "lib")))
 sc <- sparkR.init(master = "local[*]", 
@@ -140,6 +142,10 @@ m4_data <- read.df(sqlContext,
                     nullValue = "NA",
                     schema = customSchema)
 
+write.parquet(m4_data, path = "./data/m4_parquet")
+
+parquet_test <- read.parquet(sqlContext, path = "./data/m4_parquet")
+showDF(parquet_test, 100)
 ```
 
 ### Data Exploration
@@ -151,7 +157,7 @@ The `route` column contains is the identifier of the stretch of road that the ob
 
 ```{r, message = FALSE}
 #show top 100 rows
-showDF(m4_data, 100)  
+showDF(m4_data, 10)  
 
 #count number of rows
 nrow(m4_data)
@@ -162,12 +168,14 @@ showDF(
 )
 ```
 
-**Discuss**: is this Tidy Data?
+**Discuss**: 
+
+* is this Tidy Data?
 
 ### Feature Engineering and Preprocessing using Dplyr/Spark
 
 #### Preprocessing
-An issue we have to consider is that not all routes (sections of road) are the same length. We'll standardise the transit times, but alternatively you could join the approximate route lengths from the csv file in `./data/`. And use that to model transit speed. This is left as an exercise.
+An issue we have to consider is that not all routes (sections of road) are the same length. We'll standardise the transit times. 
 
 Standardising using Spark:
 ```{r, message = FALSE}
@@ -181,9 +189,31 @@ m4_data <- join(m4_data, summary_tab, m4_data$route == summary_tab$route, "left"
 
 #Calculate a new column based in the Z-score
 m4_data$std_transit <- (m4_data$transit - m4_data$mean)/m4_data$sd
-showDF(m4_data, 100)
+showDF(m4_data, 10)
 ```
+
+**Discuss**:
+
+* How might you use `./data/RouteLengthApprox.csv` for further preprocessing?
+
 
 #### Feature engineering
 Given our data, the objective is to transform it to present features that will offer traction to our chosen modelling. A common example is processing of timestamps. Here `date`, a timestamp with granularity in seconds will probably not be useful in detecting the signal associated with transit time. Common sense would tell us that the hour of the day and day of the week may be more useful covariates.
+
+```{r, message = FALSE}
+m4_data$day_of_week <- date_format(m4_data$Date, 'EEEE')
+m4_data$hour_of_day <- hour(m4_data$Date)
+showDF(m4_data, 10)
+```
+
+**Discuss**: 
+
+* What other features might the transist time of a route be associated with?
+* Can you conceive a way to engineer them in Spark? 
+
+#Shutdown
+That's the end of the practial. When you've finished experimenting, close your Spark session with:
+```{r}
+SparkR::sparkR.stop()
+```
 
