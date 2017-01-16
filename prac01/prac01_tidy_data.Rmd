@@ -8,12 +8,13 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(readr)
-library(here)
+#library(here)
 library(knitr)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
-library(sparklyr)
+#initialise data file paths
+PRAC_HOME <- "/users/ugrad/amsi_705/MSBigData/"
 ```
 
 # Introduction 
@@ -43,7 +44,7 @@ This example is based on one from Hadley's [Tidy Data Vignette](ftp://cran.r-pro
 ### Data
 ```{r, message=FALSE}
 tb_cases <- 
-  read_csv(here("data","tb.csv"))
+  read_csv(file.path(PRAC_HOME,"Practicals/prac01/data","tb.csv"))
 
 tb_cases %>% 
   filter(iso2 == "AU") %>%
@@ -108,29 +109,16 @@ This example is based on historical travel time data from the M4 motorway in Syd
 
 The motorway is broken up into a series of Eastbound and Westbound "routes" for which we have the recorded average transit time of vehicles calculated over consecutive 3 minute intervals from March to November in 2010.
 
-### Initialisation
 ```{r, message = FALSE}
-#initialise data file paths
-m4_data_file <- here("data","m4_parquet")
-
-
 #initialise spark
+Sys.setenv(SPARK_HOME = file.path(PRAC_HOME,"spark-1.6.3-bin-hadoop2.6"))
 
-Sys.setenv(SPARK_HOME = file.path(Sys.getenv("HOME"),"spark-1.6.3-bin-hadoop2.6"))
-
-#To install csv connecter, if required:
-#system("$SPARK_HOME/bin/spark-shell --packages com.databricks:spark-csv_2.10:1.5.0")
-
-library(SparkR, lib.loc = c(file.path(Sys.getenv("SPARK_HOME"), "R", "lib")))
+library(SparkR, lib.loc = c(file.path(SPARK_HOME, "R", "lib")))
 sc <- sparkR.init(master = "local[*]", 
-                  sparkEnvir = list(spark.driver.memory="2g"),
-                  sparkPackages="com.databricks:spark-csv_2.10:1.5.0")
+                  sparkEnvir = list(spark.driver.memory="2g"))
 sqlContext <- sparkRSQL.init(sc)
 
-
-
-#load data to spark instance from apache file format
-m4_data <- read.parquet(sqlContext, m4_data_file)
+m4_data <- read.parquet(sqlContext, path = file.path(PRAC_HOME,"Practicals/prac01/data/m4_parquet"))
 ```
 
 ### Data Exploration
