@@ -1,4 +1,3 @@
-install.packages(c("sparklyr", "tidyverse"))
-sparklyr::spark_install(version = "2.0.2")
+install.packages("tidyverse")
 devtools::install_github("krlmlr/here")
 
