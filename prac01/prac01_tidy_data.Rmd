@@ -34,7 +34,7 @@ The second exercise introduces feature engineering as an aspect of daa preproces
 ## 1. Tidying Data
 This example is based on one from Hadley's [Tidy Data Vignette](ftp://cran.r-project.org/pub/R/web/packages/tidyr/vignettes/tidy-data.html). The table below is  an extract from a dataset that shows observations of Tuberculosis case instances by gender, age, country and year. The extract is of Australian cases.
 
-*Discuss*:
+**DiscussO*:
 
 * How do the columns map to the information?
 * What principles of Tidy data are violated?
@@ -106,13 +106,13 @@ tb_cases_sep %>%
 This example is based on historical travel time data from the M4 motorway in Sydney:
 ![](./figs/m4_times.jpg)
 
-The motorway is broken up into a series of Eastbound and Westbound "loops" for which we have the recorded average transit time of vehicles calculated over consecutive 3 minute intervals from March to November in 2010.
+The motorway is broken up into a series of Eastbound and Westbound "routes" for which we have the recorded average transit time of vehicles calculated over consecutive 3 minute intervals from March to November in 2010.
 
 ### Initialisation
 ```{r, message = FALSE}
 #initialise data file paths
-m4_data_file <- here("data","M4_data.csv")
-loop_lengths_file <- here("data", "RouteLengthApprox.csv")
+m4_data_file <- here("data","m4_parquet")
+
 
 #initialise spark
 
@@ -129,23 +129,8 @@ sqlContext <- sparkRSQL.init(sc)
 
 
 
-#load data to spark instance
-customSchema <- structType(
-    structField("Date", "timestamp"),
-    structField("route", "integer"),
-    structField("transit", "integer"))
-
-m4_data <- read.df(sqlContext, 
-                    path = m4_data_file, 
-                    source = "com.databricks.spark.csv",
-                    header = "true",
-                    nullValue = "NA",
-                    schema = customSchema)
-
-write.parquet(m4_data, path = "./data/m4_parquet")
-
-parquet_test <- read.parquet(sqlContext, path = "./data/m4_parquet")
-showDF(parquet_test, 100)
+#load data to spark instance from apache file format
+m4_data <- read.parquet(sqlContext, m4_data_file)
 ```
 
 ### Data Exploration
@@ -194,11 +179,11 @@ showDF(m4_data, 10)
 
 **Discuss**:
 
-* How might you use `./data/RouteLengthApprox.csv` for further preprocessing?
+* How might you use `./data/RouteLengthApprox.csv` for alternate preprocessing preprocessing?
 
 
 #### Feature engineering
-Given our data, the objective is to transform it to present features that will offer traction to our chosen modelling. A common example is processing of timestamps. Here `date`, a timestamp with granularity in seconds will probably not be useful in detecting the signal associated with transit time. Common sense would tell us that the hour of the day and day of the week may be more useful covariates.
+The objective of feature engineering is to transform the data to present features that will offer traction to our chosen modelling approach. A common example is processing of timestamps. Here `date`, a timestamp with granularity in seconds will probably not be useful in detecting the signal associated with transit time. Common experience would tell us that the hour of the day and day of the week may be more useful covariates.
 
 ```{r, message = FALSE}
 m4_data$day_of_week <- date_format(m4_data$Date, 'EEEE')
