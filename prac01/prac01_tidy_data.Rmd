@@ -115,15 +115,14 @@ m4_data_file <- here("data","m4_parquet")
 #initialise spark
 
 #Assumes installed in your home folder. Update as necessary.
-Sys.setenv(SPARK_HOME = file.path(Sys.getenv("HOME"),"spark-1.6.3-bin-hadoop2.6"))
+SPARK_HOME = file.path(Sys.getenv("HOME"),"spark-1.6.3-bin-hadoop2.6")
 
 #To install csv connecter, if required:
 #system("$SPARK_HOME/bin/spark-shell --packages com.databricks:spark-csv_2.10:1.5.0")
 
-library(SparkR, lib.loc = c(file.path(Sys.getenv("SPARK_HOME"), "R", "lib")))
+library(SparkR, lib.loc = file.path(SPARK_HOME, "R", "lib"))
 sc <- sparkR.init(master = "local[*]", 
-                  sparkEnvir = list(spark.driver.memory="2g"),
-                  sparkPackages="com.databricks:spark-csv_2.10:1.5.0")
+                  sparkEnvir = list(spark.driver.memory="2g"))
 sqlContext <- sparkRSQL.init(sc)
 
 
