@@ -82,14 +82,6 @@ tb_cases_sep %>%
   filter(iso2 == "AU", !is.na(num_cases)) %>%
   top_n(10) %>%
   kable()
-  
-plot_table <- tb_cases_sep %>%
-  group_by(gender, year) %>%
-  summarise(total_cases = sum(num_cases))
-
-ggplot(plot_table, aes(x = year, y = total_cases, colour = gender)) +
-  geom_path()
-  
 ```
 
 #### Exercise
@@ -122,6 +114,7 @@ m4_data_file <- here("data","m4_parquet")
 
 #initialise spark
 
+#Assumes installed in your home folder. Update as necessary.
 Sys.setenv(SPARK_HOME = file.path(Sys.getenv("HOME"),"spark-1.6.3-bin-hadoop2.6"))
 
 #To install csv connecter, if required:
