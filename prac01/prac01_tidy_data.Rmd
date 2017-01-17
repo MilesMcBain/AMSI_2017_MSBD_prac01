@@ -13,7 +13,6 @@ library(knitr)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
-library(sparklyr)
 ```
 
 # Introduction 
