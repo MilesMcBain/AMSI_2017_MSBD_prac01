@@ -1,3 +1,2 @@
 M4_data.csv filter=lfs diff=lfs merge=lfs -text
 RouteLengthApprox.csv filter=lfs diff=lfs merge=lfs -text
-tb.csv filter=lfs diff=lfs merge=lfs -text
