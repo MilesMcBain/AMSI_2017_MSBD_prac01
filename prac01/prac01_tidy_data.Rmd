@@ -83,6 +83,13 @@ tb_cases_sep %>%
   top_n(10) %>%
   kable()
   
+plot_table <- tb_cases_sep %>%
+  group_by(gender, year) %>%
+  summarise(total_cases = sum(num_cases))
+
+ggplot(plot_table, aes(x = year, y = total_cases, colour = gender)) +
+  geom_path()
+  
 ```
 
 #### Exercise
