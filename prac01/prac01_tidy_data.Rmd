@@ -42,7 +42,7 @@ This example is based on one from Hadley's [Tidy Data Vignette](ftp://cran.r-pro
 ### Data
 ```{r, message=FALSE}
 tb_cases <- 
-  read_csv(here("data","tb.csv"))
+  read_csv(here("data","tb_who.csv"))
 
 tb_cases %>% 
   filter(iso2 == "AU") %>%
