@@ -33,7 +33,7 @@ The second exercise introduces feature engineering as an aspect of daa preproces
 ## 1. Tidying Data
 This example is based on one from Hadley's [Tidy Data Vignette](ftp://cran.r-project.org/pub/R/web/packages/tidyr/vignettes/tidy-data.html). The table below is  an extract from a dataset that shows observations of Tuberculosis case instances by gender, age, country and year. The extract is of Australian cases.
 
-**DiscussO*:
+**Discussion**:
 
 * How do the columns map to the information?
 * What principles of Tidy data are violated?
