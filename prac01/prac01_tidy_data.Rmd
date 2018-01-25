@@ -194,7 +194,7 @@ showDF(m4_data, 10)
 * What other features might the transist time of a route be associated with?
 * Can you conceive a way to engineer them in Spark? 
 
-#Shutdown
+# Shutdown
 That's the end of the practial. When you've finished experimenting, close your Spark session with:
 ```{r}
 SparkR::sparkR.stop()
