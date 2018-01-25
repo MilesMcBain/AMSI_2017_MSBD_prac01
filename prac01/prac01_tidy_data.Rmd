@@ -177,7 +177,7 @@ showDF(m4_data, 10)
 
 **Discuss**:
 
-* How might you use `./data/RouteLengthApprox.csv` for alternate preprocessing preprocessing?
+* How might you use `./data/RouteLengthApprox.csv` for alternate preprocessing?
 
 
 #### Feature engineering
